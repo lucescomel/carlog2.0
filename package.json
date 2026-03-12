@@ -1,0 +1,13 @@
+{
+  "name": "carlog",
+  "version": "2.0.0",
+  "description": "Carlog — Application de gestion et suivi de véhicules",
+  "private": true,
+  "scripts": {
+    "dev:backend":  "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "install:all":  "npm ci --prefix backend && npm ci --prefix frontend",
+    "build":        "npm run build --prefix frontend",
+    "start":        "npm run start --prefix backend"
+  }
+}
