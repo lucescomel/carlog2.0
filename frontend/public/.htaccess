@@ -1,0 +1,13 @@
+Options -Indexes
+RewriteEngine On
+
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteCond %{REQUEST_URI} ^/api/
+RewriteRule ^ proxy.php [L,QSA]
+
+RewriteRule ^ index.html [L]
