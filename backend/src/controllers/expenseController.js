@@ -18,6 +18,9 @@ exports.list = async (req, res) => {
     where += ' AND e.category = ?'; params.push(category);
   }
 
+  const limitInt  = parseInt(limit);
+  const offsetInt = parseInt(offset);
+
   try {
     const [[{ total }]] = await db.execute(
       `SELECT COUNT(*) AS total FROM expenses e ${where}`, params
@@ -25,10 +28,10 @@ exports.list = async (req, res) => {
     const [rows] = await db.execute(
       `SELECT e.*, u.first_name, u.last_name FROM expenses e
        INNER JOIN users u ON u.id = e.user_id
-       ${where} ORDER BY e.date DESC, e.created_at DESC LIMIT ? OFFSET ?`,
-      [...params, parseInt(limit), offset]
+       ${where} ORDER BY e.date DESC, e.created_at DESC LIMIT ${limitInt} OFFSET ${offsetInt}`,
+      params
     );
-    res.json({ data: rows, total, page: parseInt(page), limit: parseInt(limit) });
+    res.json({ data: rows, total, page: parseInt(page), limit: limitInt });
   } catch (err) {
     console.error('[Expense] list error:', err);
     res.status(500).json({ error: 'Erreur serveur' });

@@ -11,6 +11,9 @@ exports.list = async (req, res) => {
   const params = [vehicleId];
   if (type) { where += ' AND m.type = ?'; params.push(type); }
 
+  const limitInt  = parseInt(limit);
+  const offsetInt = parseInt(offset);
+
   try {
     const [[{ total }]] = await db.execute(
       `SELECT COUNT(*) AS total FROM maintenance m ${where}`, params
@@ -18,8 +21,8 @@ exports.list = async (req, res) => {
     const [rows] = await db.execute(
       `SELECT m.*, u.first_name, u.last_name FROM maintenance m
        INNER JOIN users u ON u.id = m.user_id
-       ${where} ORDER BY m.date DESC, m.created_at DESC LIMIT ? OFFSET ?`,
-      [...params, parseInt(limit), offset]
+       ${where} ORDER BY m.date DESC, m.created_at DESC LIMIT ${limitInt} OFFSET ${offsetInt}`,
+      params
     );
 
     // Alertes entretiens à venir

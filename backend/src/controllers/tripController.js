@@ -16,6 +16,9 @@ exports.list = async (req, res) => {
     where += ' AND t.trip_type = ?'; params.push(type);
   }
 
+  const limitInt  = parseInt(limit);
+  const offsetInt = parseInt(offset);
+
   try {
     const [[{ total }]] = await db.execute(
       `SELECT COUNT(*) AS total FROM trips t ${where}`, params
@@ -23,10 +26,10 @@ exports.list = async (req, res) => {
     const [rows] = await db.execute(
       `SELECT t.*, u.first_name, u.last_name FROM trips t
        INNER JOIN users u ON u.id = t.user_id
-       ${where} ORDER BY t.date DESC, t.created_at DESC LIMIT ? OFFSET ?`,
-      [...params, parseInt(limit), offset]
+       ${where} ORDER BY t.date DESC, t.created_at DESC LIMIT ${limitInt} OFFSET ${offsetInt}`,
+      params
     );
-    res.json({ data: rows, total, page: parseInt(page), limit: parseInt(limit) });
+    res.json({ data: rows, total, page: parseInt(page), limit: limitInt });
   } catch (err) {
     console.error('[Trip] list error:', err);
     res.status(500).json({ error: 'Erreur serveur' });

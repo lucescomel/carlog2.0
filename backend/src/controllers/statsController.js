@@ -59,12 +59,12 @@ exports.vehicleStats = async (req, res) => {
       [vehicleId]
     );
 
-    // Calculs dérivés
+    // Calculs dérivés — seuil min 50 km pour éviter des valeurs aberrantes
     const totalKm   = parseFloat(distances.km_this_year) || 0;
     const totalExp  = parseFloat(totals.total_expenses) || 0;
-    const costPerKm = totalKm > 0 ? (totalExp / totalKm).toFixed(3) : null;
-    const avgConsumption = (totalKm > 0 && totals.total_liters > 0)
-      ? ((totals.total_liters / totalKm) * 100).toFixed(2)
+    const costPerKm = totalKm >= 50 ? (totalExp / totalKm).toFixed(3) : null;
+    const avgConsumption = (totalKm >= 50 && parseFloat(totals.total_liters) > 0)
+      ? ((parseFloat(totals.total_liters) / totalKm) * 100).toFixed(2)
       : null;
 
     res.json({

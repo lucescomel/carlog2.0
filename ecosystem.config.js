@@ -8,7 +8,7 @@ module.exports = {
     {
       name: 'carlog-api',
       script: './backend/src/app.js',
-      cwd: '/home/<votre_user_o2switch>/carlog',   // ← à adapter
+      cwd: '/home/wubo8435/carlog',
 
       instances: 1,                                 // 1 instance (mutualisé)
       exec_mode: 'fork',
