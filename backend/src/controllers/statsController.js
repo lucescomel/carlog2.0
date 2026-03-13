@@ -18,29 +18,42 @@ exports.vehicleStats = async (req, res) => {
       [year, year, year, vehicleId]
     );
 
-    // Total & dépenses par catégorie (année)
+    // Total & dépenses par catégorie (année) — expenses + maintenance
     const [expensesByCategory] = await db.execute(
-      `SELECT category, COALESCE(SUM(amount), 0) AS total
-       FROM expenses WHERE vehicle_id = ? AND YEAR(date) = ?
-       GROUP BY category`,
-      [vehicleId, year]
+      `SELECT category, SUM(total) AS total FROM (
+         SELECT category, COALESCE(SUM(amount), 0) AS total
+         FROM expenses WHERE vehicle_id = ? AND YEAR(date) = ?
+         GROUP BY category
+         UNION ALL
+         SELECT type AS category, COALESCE(SUM(cost), 0) AS total
+         FROM maintenance WHERE vehicle_id = ? AND YEAR(date) = ? AND cost IS NOT NULL
+         GROUP BY type
+       ) combined GROUP BY category`,
+      [vehicleId, year, vehicleId, year]
     );
 
     const [[totals]] = await db.execute(
       `SELECT
-        COALESCE(SUM(amount), 0) AS total_expenses,
-        COALESCE(SUM(CASE WHEN category = 'carburant' THEN amount ELSE 0 END), 0) AS fuel_cost,
-        COALESCE(SUM(CASE WHEN category = 'carburant' THEN fuel_liters ELSE 0 END), 0) AS total_liters
-       FROM expenses WHERE vehicle_id = ? AND YEAR(date) = ?`,
-      [vehicleId, year]
+        (SELECT COALESCE(SUM(amount), 0) FROM expenses   WHERE vehicle_id = ? AND YEAR(date) = ?) +
+        (SELECT COALESCE(SUM(cost),   0) FROM maintenance WHERE vehicle_id = ? AND YEAR(date) = ? AND cost IS NOT NULL)
+          AS total_expenses,
+        (SELECT COALESCE(SUM(amount),     0) FROM expenses WHERE vehicle_id = ? AND YEAR(date) = ? AND category = 'carburant') AS fuel_cost,
+        (SELECT COALESCE(SUM(fuel_liters),0) FROM expenses WHERE vehicle_id = ? AND YEAR(date) = ? AND category = 'carburant') AS total_liters`,
+      [vehicleId, year, vehicleId, year, vehicleId, year, vehicleId, year]
     );
 
-    // Évolution mensuelle des dépenses (12 mois)
+    // Évolution mensuelle des dépenses (12 mois) — expenses + maintenance
     const [monthlyExpenses] = await db.execute(
-      `SELECT MONTH(date) AS month, COALESCE(SUM(amount), 0) AS total
-       FROM expenses WHERE vehicle_id = ? AND YEAR(date) = ?
-       GROUP BY MONTH(date) ORDER BY month`,
-      [vehicleId, year]
+      `SELECT month, SUM(total) AS total FROM (
+         SELECT MONTH(date) AS month, COALESCE(SUM(amount), 0) AS total
+         FROM expenses WHERE vehicle_id = ? AND YEAR(date) = ?
+         GROUP BY MONTH(date)
+         UNION ALL
+         SELECT MONTH(date) AS month, COALESCE(SUM(cost), 0) AS total
+         FROM maintenance WHERE vehicle_id = ? AND YEAR(date) = ? AND cost IS NOT NULL
+         GROUP BY MONTH(date)
+       ) combined GROUP BY month ORDER BY month`,
+      [vehicleId, year, vehicleId, year]
     );
 
     // Évolution mensuelle des km
@@ -93,13 +106,21 @@ exports.dashboard = async (req, res) => {
        WHERE owner_id = ? AND is_active = 1`, [userId]
     );
 
-    // Total dépenses du mois courant
+    // Total dépenses du mois courant — expenses + maintenance
     const [[{ month_expenses }]] = await db.execute(
-      `SELECT COALESCE(SUM(e.amount), 0) AS month_expenses
-       FROM expenses e
-       INNER JOIN vehicles v ON v.id = e.vehicle_id
-       WHERE v.owner_id = ? AND YEAR(e.date) = YEAR(NOW()) AND MONTH(e.date) = MONTH(NOW())`,
-      [userId]
+      `SELECT COALESCE(SUM(amount), 0) AS month_expenses FROM (
+         SELECT e.amount
+         FROM expenses e
+         INNER JOIN vehicles v ON v.id = e.vehicle_id
+         WHERE v.owner_id = ? AND YEAR(e.date) = YEAR(NOW()) AND MONTH(e.date) = MONTH(NOW())
+         UNION ALL
+         SELECT m.cost AS amount
+         FROM maintenance m
+         INNER JOIN vehicles v ON v.id = m.vehicle_id
+         WHERE v.owner_id = ? AND m.cost IS NOT NULL
+           AND YEAR(m.date) = YEAR(NOW()) AND MONTH(m.date) = MONTH(NOW())
+       ) combined`,
+      [userId, userId]
     );
 
     // Total km du mois courant
