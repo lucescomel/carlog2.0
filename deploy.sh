@@ -4,6 +4,10 @@
 # Appelé par le cron job cPanel toutes les 5 minutes
 # ============================================================
 
+# Charger nvm pour avoir accès à node, npm, pm2
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
 REPO="$HOME/carlog/carlog2.0"
 LOG="$HOME/logs/deploy.log"
 
